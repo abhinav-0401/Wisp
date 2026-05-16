@@ -8,6 +8,8 @@
 #include "CompilationUnit.h"
 #include "Token.h"
 
+namespace Wisp {
+
 class Lexer {
 public:
     explicit Lexer(CompilationUnit& comp_unit)
@@ -36,5 +38,7 @@ private:
     std::size_t m_current;
     std::size_t m_line;
 };
+
+}   // namespace Wisp
 
 #endif //WISP_LEXER_H

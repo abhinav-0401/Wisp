@@ -1,5 +1,6 @@
 #include "CompilationUnit.h"
 #include "Lexer.h"
+#include "Parser.h"
 #include "Token.h"
 
 #include <cstdlib>
@@ -7,9 +8,10 @@
 #include <vector>
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    using namespace Wisp;
 
-    std::string test_str = "var let x mytest fn = 78;\nif 3+==4;/&13-8!5.44;\n";
+    // std::string test_str = "var let x mytest fn = 78;\nif 3+==4;/&13-8!5.44;\n";
+    std::string test_str = "2 + 3;";
 
     auto test_comp_unit = CompilationUnit{
         .filename = "TestFileString",
@@ -18,7 +20,7 @@ int main() {
         .diagnostics = std::vector<Diagnostic>()
     };
 
-    auto lexer = Lexer{test_comp_unit};
+    auto lexer = Lexer{ test_comp_unit };
     lexer.lex_comp_unit();
 
     for (const auto& token : test_comp_unit.tokens) {
@@ -29,11 +31,15 @@ int main() {
         std::cout << std::format("[{0}.wisp Line Number {1}]", test_comp_unit.filename, line) << ": " << message << "\n";
     }
 
+    auto parser = Parser{ test_comp_unit };
+    parser.parse_comp_unit();
+
     if (test_comp_unit.has_errors()) {
+        for (const auto&[line, message] : test_comp_unit.diagnostics) {
+            std::cout << std::format("[{0}.wisp Line Number {1}]", test_comp_unit.filename, line) << ": " << message << "\n";
+        }
         return EXIT_FAILURE;
     }
-
-
 
     return EXIT_SUCCESS;
 }

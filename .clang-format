@@ -1,0 +1,45 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+
+# --- SerenityOS Core Guidelines ---
+
+# Indentation: 4 spaces, absolutely no tabs.
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+# Pointer/Reference Alignment: Left-aligned (e.g., `char* foo`, not `char *foo`).
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+
+# Column Limit: SerenityOS generally avoids strict line limits to prioritize natural wrapping.
+ColumnLimit: 120
+
+# Switch Statements: Cases should be indented one level from the `switch`.
+IndentCaseLabels: true
+
+# Namespaces: Do not indent the contents of namespaces.
+NamespaceIndentation: None
+
+# Includes: Automatically sort and group includes.
+SortIncludes: true
+
+# Spacing: Ensure a space between control keywords and parentheses (e.g., `if (...)`).
+SpaceBeforeParens: ControlStatements
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  # Functions get braces on the next line in strict 1TBS/K&R
+  AfterFunction: false
+  AfterControlStatement: Never
+  AfterClass: false
+  AfterEnum: false
+  AfterNamespace: false
+  AfterStruct: false
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: false
+  BeforeWhile: false
+
+InsertBraces: true

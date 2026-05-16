@@ -9,6 +9,8 @@
 #include <optional>
 #include <unordered_map>
 
+namespace Wisp {
+
 void Lexer::lex_comp_unit() {
     for (Token token = next_token(); token.kind != TokenKind::Eof; token = next_token()) {
         if (token.kind == TokenKind::Error) {
@@ -41,12 +43,24 @@ Token Lexer::next_token() {
         case ',': return make_token(TokenKind::Comma);
         case '+': return make_token(TokenKind::Plus);
         case '-': return make_token(TokenKind::Minus);
-        case '*': return make_token(TokenKind::Asterisk);
+        case '*': return make_token(TokenKind::Star);
         case '/': return make_token(TokenKind::Slash);
-        case '>': return make_token(TokenKind::GreaterThan);
-        case '<': return make_token(TokenKind::LessThan);
 
         // One or two character tokens
+        case '>': {
+            if (match('=')) {
+                return make_token(TokenKind::GreaterThanEquals);
+            }
+            return make_token(TokenKind::GreaterThan);
+        }
+
+        case '<': {
+            if (match('=')) {
+                return make_token(TokenKind::LessThanEquals);
+            }
+            return make_token(TokenKind::LessThan);
+        }
+
         case '=': {
             if (match('=')) {
                 return make_token(TokenKind::EqualsEquals);
@@ -200,12 +214,15 @@ char Lexer::current_char() const {
 }
 
 char Lexer::peek() const {
-    if (is_eof()) {
+    if (m_current + 1 >= m_comp_unit.source.size()) {
         return '\0';
     }
+
     return m_comp_unit.source[m_current + 1];
 }
 
 bool Lexer::is_eof() const {
     return m_current >= m_comp_unit.source.size();
 }
+
+}   // namespace Wisp

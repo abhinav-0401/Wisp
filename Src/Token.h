@@ -7,6 +7,8 @@
 
 #include <string_view>
 
+namespace Wisp {
+
 enum class TokenKind {
     // Special
     Eof,
@@ -24,7 +26,7 @@ enum class TokenKind {
     // Operators
     Plus,         // +
     Minus,        // -
-    Asterisk,     // *
+    Star,     // *
     Slash,        // /
     Equals,       // =
     EqualsEquals, // ==
@@ -32,6 +34,8 @@ enum class TokenKind {
     NotEquals,   // !=
     GreaterThan,  // >
     LessThan,     // <
+    GreaterThanEquals, // >=
+    LessThanEquals,    // <=
 
     // Literals
     Identifier,
@@ -76,11 +80,11 @@ constexpr std::string_view token_kind_to_string(const TokenKind kind) {
 
         case TokenKind::Plus: return "Plus";
         case TokenKind::Minus: return "Minus";
-        case TokenKind::Asterisk: return "Asterisk";
+        case TokenKind::Star: return "Asterisk";
         case TokenKind::Slash: return "Slash";
         case TokenKind::Equals: return "Equals";
         case TokenKind::EqualsEquals: return "EqualsEquals";
-        case TokenKind::Bang: return "BangEquals";
+        case TokenKind::Bang: return "Bang";
         case TokenKind::NotEquals: return "NotEquals";
         case TokenKind::GreaterThan: return "GreaterThan";
         case TokenKind::LessThan: return "LessThan";
@@ -120,4 +124,7 @@ struct Token {
     std::size_t line;
 };
 
+}   // namespace Wisp
+
 #endif //WISP_TOKEN_H
+

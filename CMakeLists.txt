@@ -3,6 +3,9 @@ project(Wisp)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(Wisp)
+add_executable(Wisp
+               Src/Parser.h
+               Src/Parser.cpp
+               Src/AST.h)
 
 add_subdirectory(Src)
