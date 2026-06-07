@@ -5,6 +5,7 @@
 #ifndef WISP_AST_H
 #define WISP_AST_H
 
+#include "NodeVisitor.h"
 #include "Token.h"
 
 #include <memory>
@@ -27,26 +28,37 @@ class ASTNode {
 public:
     virtual ASTNodeKind kind() const = 0;
     virtual ~ASTNode() = default;
+    virtual void accept(NodeVisitor&) const = 0;
 };
 
 class StmtNode : public ASTNode {
 public:
-    virtual ~StmtNode() = default;
+    ~StmtNode() override = default;
 };
 
 class ExprNode : public ASTNode {
 public:
-    virtual ~ExprNode() = default;
+    ~ExprNode() override = default;
 };
 
 class Program : public ASTNode {
 public:
     Program() = default;
+
     ASTNodeKind kind() const override { return ASTNodeKind::Program; }
+
     void add_stmt(std::unique_ptr<StmtNode> stmt) { m_program.push_back(std::move(stmt)); }
 
+    void accept(NodeVisitor& visitor) const override {
+        for (auto& stmt : m_program) {
+            if (stmt) {
+                stmt->accept(visitor);
+            }
+        }
+    }
+
 private:
-    std::vector<std::unique_ptr<ASTNode>> m_program;
+    std::vector<std::unique_ptr<StmtNode>> m_program;
 };
 
 class UnaryExpr : public ExprNode {
@@ -55,7 +67,11 @@ public:
         : m_op(op)
         , m_expr(std::move(expr)) {}
 
+    ExprNode& expr() const { return *m_expr; }
+    TokenKind op() const { return m_op; }
+
     ASTNodeKind kind() const override { return ASTNodeKind::UnaryExpr; }
+    void accept(NodeVisitor& visitor) const override { visitor.visit_unary_expr(this, visitor); }
 
 private:
     TokenKind m_op;
@@ -69,7 +85,13 @@ public:
         , m_left(std::move(left))
         , m_right(std::move(right)) {}
 
+    ExprNode& left() const { return *m_left; }
+    ExprNode& right() const { return *m_right; }
+
+    TokenKind op() const { return m_op; }
+
     ASTNodeKind kind() const override { return ASTNodeKind::BinaryExpr; }
+    void accept(NodeVisitor& visitor) const override { visitor.visit_binary_expr(this, visitor); }
 
 private:
     TokenKind m_op;
@@ -77,16 +99,14 @@ private:
     std::unique_ptr<ExprNode> m_right;
 };
 
-template <typename T>
-concept AllowedLiteral = std::same_as<T, std::int32_t>
-                        || std::same_as<T, float>
-                        || std::same_as<T, std::string>;
 
 template <AllowedLiteral T>
 class LiteralExpr : public ExprNode {
 public:
     explicit LiteralExpr(T value)
         : m_value(value) {}
+
+    T value() const { return m_value; }
 
     ASTNodeKind kind() const override {
         if constexpr (std::same_as<T, std::int32_t>) {
@@ -98,6 +118,8 @@ public:
         }
     }
 
+    void accept(NodeVisitor& visitor) const override { visitor.visit_literal_expr(this); }
+
 private:
     T m_value;
 };
@@ -107,7 +129,9 @@ public:
     explicit ExprStmt(std::unique_ptr<ExprNode> expr)
         : m_expr(std::move(expr)) {}
 
+    ExprNode& expr() const { return *m_expr; }
     ASTNodeKind kind() const override { return ASTNodeKind::ExprStmt; }
+    void accept(NodeVisitor& visitor) const override { visitor.visit_expr_stmt(this, visitor); }
 
 private:
     std::unique_ptr<ExprNode> m_expr;

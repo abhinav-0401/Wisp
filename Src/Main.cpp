@@ -1,6 +1,7 @@
 #include "CompilationUnit.h"
 #include "Lexer.h"
 #include "Parser.h"
+#include "PrintVisitor.h"
 #include "Token.h"
 
 #include <cstdlib>
@@ -10,8 +11,7 @@
 int main() {
     using namespace Wisp;
 
-    // std::string test_str = "var let x mytest fn = 78;\nif 3+==4;/&13-8!5.44;\n";
-    std::string test_str = "2 + 3;";
+    std::string test_str = "(2 + 3;";
 
     auto test_comp_unit = CompilationUnit{
         .filename = "TestFileString",
@@ -22,10 +22,6 @@ int main() {
 
     auto lexer = Lexer{ test_comp_unit };
     lexer.lex_comp_unit();
-
-    for (const auto& token : test_comp_unit.tokens) {
-        std::cout << token_kind_to_string(token.kind) << " " << token.lexeme << " " << token.line << "\n";
-    }
 
     for (const auto&[line, message] : test_comp_unit.diagnostics) {
         std::cout << std::format("[{0}.wisp Line Number {1}]", test_comp_unit.filename, line) << ": " << message << "\n";
@@ -40,6 +36,13 @@ int main() {
         }
         return EXIT_FAILURE;
     }
+
+    std::cout << "Parsing successful!\n";
+
+    auto print_visitor = PrintVisitor{};
+    test_comp_unit.program->accept(print_visitor);
+
+    std::cout << print_visitor.output() << "\n";
 
     return EXIT_SUCCESS;
 }
