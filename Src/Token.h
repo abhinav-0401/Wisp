@@ -38,7 +38,7 @@ enum class TokenKind {
     LessThanEquals,    // <=
 
     // Literals
-    Identifier,
+    Ident,
     IntLiteral,
     FloatLiteral,
     StringLiteral,
@@ -56,6 +56,7 @@ enum class TokenKind {
     None,
     True,
     False,
+    Print,
 
     // Built-in Types
     TypeInt,
@@ -89,7 +90,7 @@ constexpr std::string_view token_kind_to_string(const TokenKind kind) {
         case TokenKind::GreaterThan: return "GreaterThan";
         case TokenKind::LessThan: return "LessThan";
 
-        case TokenKind::Identifier: return "Identifier";
+        case TokenKind::Ident: return "Identifier";
         case TokenKind::IntLiteral: return "IntLiteral";
         case TokenKind::FloatLiteral: return "FloatLiteral";
         case TokenKind::StringLiteral: return "StringLiteral";
@@ -106,6 +107,7 @@ constexpr std::string_view token_kind_to_string(const TokenKind kind) {
         case TokenKind::None: return "None";
         case TokenKind::True: return "True";
         case TokenKind::False: return "False";
+        case TokenKind::Print: return "Print";
 
         case TokenKind::TypeInt: return "TypeInt";
         case TokenKind::TypeFloat: return "TypeFloat";

@@ -33,6 +33,7 @@ private:
     Token make_string();
     void skip_whitespace();
 
+private:
     CompilationUnit& m_comp_unit;
     std::size_t m_start;
     std::size_t m_current;

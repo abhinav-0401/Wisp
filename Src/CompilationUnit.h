@@ -5,7 +5,6 @@
 #ifndef WISP_COMPILATION_UNIT_H
 #define WISP_COMPILATION_UNIT_H
 
-#include "AST.h"
 #include "Token.h"
 
 #include <memory>
@@ -13,6 +12,8 @@
 #include <vector>
 
 namespace Wisp {
+
+class Program;
 
 struct Diagnostic {
     std::size_t line;
@@ -25,6 +26,8 @@ struct CompilationUnit {
     std::vector<Token> tokens;
     std::unique_ptr<Program> program;
     std::vector<Diagnostic> diagnostics;
+
+    ~CompilationUnit();
 
     bool has_errors() const {
         return !diagnostics.empty();

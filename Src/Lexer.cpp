@@ -124,6 +124,7 @@ const std::unordered_map<std::string_view, TokenKind> s_keywords = {
     {"none", TokenKind::None},
     {"true", TokenKind::True},
     {"false", TokenKind::False},
+    {"print", TokenKind::Print},
 
     {"Int", TokenKind::TypeInt},
     {"Float", TokenKind::TypeFloat},
@@ -143,7 +144,7 @@ std::optional<TokenKind> keyword_kind(const std::string_view lexeme) {
 }
 
 Token Lexer::make_ident() {
-    while (std::isalnum(current_char())) {
+    while (std::isalnum(current_char()) || current_char() == '_') {
         advance();
     }
     const auto lexeme = std::string_view(m_comp_unit.source).substr(m_start, m_current - m_start);
@@ -151,7 +152,7 @@ Token Lexer::make_ident() {
     if (type.has_value()) {
         return Token{type.value(), lexeme, m_line};
     }
-    return Token{TokenKind::Identifier, lexeme, m_line};
+    return Token{TokenKind::Ident, lexeme, m_line};
 }
 
 Token Lexer::make_num() {
@@ -172,7 +173,6 @@ Token Lexer::make_num() {
 }
 
 Token Lexer::make_string() {
-    advance();
     while (current_char() != '"') {
         if (is_eof()) {
             return Token{TokenKind::Error, "Unterminated string.", m_line};

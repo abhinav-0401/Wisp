@@ -25,8 +25,12 @@ public:
 private:
     void parse_program();
     std::unique_ptr<StmtNode> parse_stmt();
-    std::unique_ptr<StmtNode> parse_expr_stmt();
+    std::unique_ptr<PrintStmt> parse_print_stmt();
+    std::unique_ptr<ExprStmt> parse_expr_stmt();
+    std::unique_ptr<VarDeclStmt> parse_var_decl_stmt();
+
     std::unique_ptr<ExprNode> parse_expr();
+    std::unique_ptr<ExprNode> parse_ident_expr();
     std::unique_ptr<ExprNode> parse_logical();
     std::unique_ptr<ExprNode> parse_term();
     std::unique_ptr<ExprNode> parse_factor();
@@ -40,6 +44,7 @@ private:
         return m_current >= m_comp_unit.tokens.size() || m_comp_unit.tokens[m_current].kind == TokenKind::Eof;
     }
 
+private:
     CompilationUnit& m_comp_unit;
     std::size_t m_current;
 };

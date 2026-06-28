@@ -15,35 +15,49 @@ namespace Wisp {
 
 enum class ASTNodeKind {
     Program,
+
     UnaryExpr,
     BinaryExpr,
+    VarExpr,
+    AssignExpr,
+
     IntLiteral,
     FloatLiteral,
     StringLiteral,
+    BoolLiteral,
 
     ExprStmt,
+    PrintStmt,
+    VarDeclStmt,
 };
 
 class ASTNode {
 public:
+    explicit ASTNode(std::size_t line) : m_line(line) {}
     virtual ASTNodeKind kind() const = 0;
     virtual ~ASTNode() = default;
     virtual void accept(NodeVisitor&) const = 0;
+    std::size_t line() const { return m_line; }
+
+private:
+    std::size_t m_line;
 };
 
 class StmtNode : public ASTNode {
 public:
+    explicit StmtNode(std::size_t line) : ASTNode(line) {}
     ~StmtNode() override = default;
 };
 
 class ExprNode : public ASTNode {
 public:
+    explicit ExprNode(std::size_t line) : ASTNode(line) {}
     ~ExprNode() override = default;
 };
 
 class Program : public ASTNode {
 public:
-    Program() = default;
+    Program() : ASTNode(1) {}
 
     ASTNodeKind kind() const override { return ASTNodeKind::Program; }
 
@@ -51,9 +65,7 @@ public:
 
     void accept(NodeVisitor& visitor) const override {
         for (auto& stmt : m_program) {
-            if (stmt) {
-                stmt->accept(visitor);
-            }
+            stmt->accept(visitor);
         }
     }
 
@@ -63,15 +75,16 @@ private:
 
 class UnaryExpr : public ExprNode {
 public:
-    UnaryExpr(TokenKind op, std::unique_ptr<ExprNode> expr)
-        : m_op(op)
+    UnaryExpr(TokenKind op, std::unique_ptr<ExprNode> expr, std::size_t line)
+        : ExprNode(line)
+        , m_op(op)
         , m_expr(std::move(expr)) {}
 
     ExprNode& expr() const { return *m_expr; }
     TokenKind op() const { return m_op; }
 
     ASTNodeKind kind() const override { return ASTNodeKind::UnaryExpr; }
-    void accept(NodeVisitor& visitor) const override { visitor.visit_unary_expr(this, visitor); }
+    void accept(NodeVisitor& visitor) const override { visitor.visit_unary_expr(this); }
 
 private:
     TokenKind m_op;
@@ -80,8 +93,9 @@ private:
 
 class BinaryExpr : public ExprNode {
 public:
-    BinaryExpr(TokenKind op, std::unique_ptr<ExprNode> left, std::unique_ptr<ExprNode> right)
-        : m_op(op)
+    BinaryExpr(TokenKind op, std::unique_ptr<ExprNode> left, std::unique_ptr<ExprNode> right, std::size_t line)
+        : ExprNode(line)
+        , m_op(op)
         , m_left(std::move(left))
         , m_right(std::move(right)) {}
 
@@ -91,7 +105,7 @@ public:
     TokenKind op() const { return m_op; }
 
     ASTNodeKind kind() const override { return ASTNodeKind::BinaryExpr; }
-    void accept(NodeVisitor& visitor) const override { visitor.visit_binary_expr(this, visitor); }
+    void accept(NodeVisitor& visitor) const override { visitor.visit_binary_expr(this); }
 
 private:
     TokenKind m_op;
@@ -99,14 +113,45 @@ private:
     std::unique_ptr<ExprNode> m_right;
 };
 
+class VarExpr : public ExprNode {
+public:
+    VarExpr(std::string name, std::size_t line)
+        : ExprNode(line)
+        , m_name(std::move(name)) {}
+
+    ASTNodeKind kind() const override { return ASTNodeKind::VarExpr; }
+    void accept(NodeVisitor& visitor) const override { visitor.visit_var_expr(this); }
+    const std::string& name() const { return m_name; }
+
+private:
+    std::string m_name;
+};
+
+class AssignExpr : public ExprNode {
+public:
+    AssignExpr(std::string name, std::unique_ptr<ExprNode> value, std::size_t line)
+        : ExprNode(line)
+        , m_name(std::move(name))
+        , m_value(std::move(value)) {}
+
+    ASTNodeKind kind() const override { return ASTNodeKind::AssignExpr; }
+    void accept(NodeVisitor& visitor) const override { visitor.visit_assign_expr(this); }
+    const std::string& name() const { return m_name; }
+    ExprNode& value() const { return *m_value; }
+
+private:
+    std::string m_name;
+    std::unique_ptr<ExprNode> m_value;
+};
 
 template <AllowedLiteral T>
 class LiteralExpr : public ExprNode {
 public:
-    explicit LiteralExpr(T value)
-        : m_value(value) {}
+    LiteralExpr(T value, std::size_t line)
+        : ExprNode(line)
+        , m_value(value) {}
 
-    T value() const { return m_value; }
+    const T& value() const { return m_value; }
 
     ASTNodeKind kind() const override {
         if constexpr (std::same_as<T, std::int32_t>) {
@@ -115,6 +160,8 @@ public:
             return ASTNodeKind::FloatLiteral;
         } else if constexpr (std::same_as<T, std::string>) {
             return ASTNodeKind::StringLiteral;
+        } else if constexpr (std::same_as<T, bool>) {
+            return ASTNodeKind::BoolLiteral;
         }
     }
 
@@ -127,14 +174,48 @@ private:
 class ExprStmt : public StmtNode {
 public:
     explicit ExprStmt(std::unique_ptr<ExprNode> expr)
-        : m_expr(std::move(expr)) {}
+        : StmtNode(expr->line())
+        , m_expr(std::move(expr)) {}
 
     ExprNode& expr() const { return *m_expr; }
     ASTNodeKind kind() const override { return ASTNodeKind::ExprStmt; }
-    void accept(NodeVisitor& visitor) const override { visitor.visit_expr_stmt(this, visitor); }
+    void accept(NodeVisitor& visitor) const override { visitor.visit_expr_stmt(this); }
 
 private:
     std::unique_ptr<ExprNode> m_expr;
+};
+
+class PrintStmt : public StmtNode {
+public:
+    explicit PrintStmt(std::unique_ptr<ExprNode> expr, std::size_t line)
+        : StmtNode(line)
+        , m_expr(std::move(expr)) {}
+
+    ExprNode& expr() const { return *m_expr; }
+    ASTNodeKind kind() const override { return ASTNodeKind::PrintStmt; }
+    void accept(NodeVisitor& visitor) const override { visitor.visit_print_stmt(this); }
+
+private:
+    std::unique_ptr<ExprNode> m_expr;
+};
+
+class VarDeclStmt : public StmtNode {
+public:
+    VarDeclStmt(std::string name, std::unique_ptr<ExprNode> init, bool is_mutable, std::size_t line)
+        : StmtNode(line)
+        , m_name(name)
+        , m_init(std::move(init))
+        , m_is_mutable(is_mutable) {}
+
+    ExprNode& init() const { return *m_init; }
+    bool is_mutable() const { return m_is_mutable; }
+    const std::string& name() const { return m_name; }
+    ASTNodeKind kind() const override { return ASTNodeKind::VarDeclStmt; }
+    void accept(NodeVisitor& visitor) const override { visitor.visit_var_decl_stmt(this); }
+private:
+    std::string m_name;
+    std::unique_ptr<ExprNode> m_init;
+    bool m_is_mutable;
 };
 
 }   // namespace Wisp
