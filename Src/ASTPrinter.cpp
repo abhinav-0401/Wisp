@@ -9,9 +9,8 @@
 namespace Wisp {
 
 void ASTPrinter::visit_expr_stmt(const ExprStmt* stmt) {
-    stmt->expr().accept(*this);
     m_output += "ExprStmt{ ";
-    m_output += m_latest_output;
+    stmt->expr().accept(*this);
     m_output += " }\n";
 }
 

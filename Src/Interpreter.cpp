@@ -13,17 +13,22 @@ namespace Wisp {
 
 /*   HERE BE STATEMENTS   */
 
-Interpreter::Interpreter() {
+Interpreter::Interpreter(CompilationUnit& comp_unit)
+    : m_comp_unit(comp_unit) {
     m_current_env = std::make_unique<Environment>();
 }
 
 void Interpreter::visit_expr_stmt(const ExprStmt* stmt) {
     stmt->expr().accept(*this);
+    if (check_err_val()) {
+        report_runtime_error();
+    }
 }
 
 void Interpreter::visit_print_stmt(const PrintStmt* stmt) {
     stmt->expr().accept(*this);
     if (check_err_val()) {
+        report_runtime_error();
         return;
     }
     std::cout << m_view_value->to_string() << std::endl;
@@ -32,6 +37,7 @@ void Interpreter::visit_print_stmt(const PrintStmt* stmt) {
 void Interpreter::visit_var_decl_stmt(const VarDeclStmt* stmt) {
     stmt->init().accept(*this);
     if (check_err_val()) {
+        report_runtime_error();
         return;
     }
 
@@ -40,19 +46,25 @@ void Interpreter::visit_var_decl_stmt(const VarDeclStmt* stmt) {
     // if we clone, there are now two unique_ptr, each a copy of the other (kind neat: copy semantics auto implemented)
     // if we don't need to clone, the evaluated expr's owned WispValue can just be moved (nice, no copy for "r-values")
 
-    if (!m_owned_value) {
-        m_current_env->define(stmt->name(), std::move(m_owned_value->clone()), stmt->is_mutable());
-        return;
+    auto value = m_owned_value ? std::move(m_owned_value) : m_view_value->clone();
+    if (!m_current_env->define(stmt->name(), std::move(value), stmt->is_mutable())) {
+        m_comp_unit.diagnostics.push_back(Diagnostic{
+            stmt->line(),
+            std::format("Redeclaration of variable '{}'.", stmt->name()) });
     }
-
-    m_current_env->define(stmt->name(), std::move(m_owned_value), stmt->is_mutable());
 }
 
 
 /*   HERE BE EXPRs   */
 
 void Interpreter::visit_var_expr(const VarExpr* expr) {
-    set_view_value(m_current_env->get(expr->name()));
+    const auto* value = m_current_env->get(expr->name());
+    if (!value) {
+        set_owned_value(std::make_unique<ErrorValue>(
+            std::format("Undefined variable '{}'.", expr->name()), expr->line()));
+        return;
+    }
+    set_view_value(value);
 }
 
 void Interpreter::visit_assign_expr(const AssignExpr* expr) {
@@ -61,12 +73,8 @@ void Interpreter::visit_assign_expr(const AssignExpr* expr) {
         return;
     }
 
-    if (!m_owned_value) {
-        m_current_env->assign(expr->name(), std::move(m_owned_value->clone()));
-        return;
-    }
-
-    auto result = m_current_env->assign(expr->name(), std::move(m_owned_value));
+    auto value = m_owned_value ? std::move(m_owned_value) : m_view_value->clone();
+    auto result = m_current_env->assign(expr->name(), std::move(value));
     switch (result) {
         case AssignResult::Immutable:
             set_owned_value(std::make_unique<ErrorValue>(
@@ -128,29 +136,31 @@ void Interpreter::visit_binary_expr(const BinaryExpr* expr) {
     if (check_err_val()) {
         return;
     }
-    auto l_result = m_view_value;
+    auto l_owned = std::move(m_owned_value);
+    const WispValue* l_view = m_view_value;
 
     expr->right().accept(*this);
     if (check_err_val()) {
         return;
     }
+    const WispValue* r_view = m_view_value;
 
     switch (expr->op()) {
         case TokenKind::Plus:
         case TokenKind::Minus:
         case TokenKind::Star:
         case TokenKind::Slash:
-            set_owned_value(eval_arithmetic(expr->op(), l_result, m_view_value, expr->line()));
+            set_owned_value(eval_arithmetic(expr->op(), l_view, r_view, expr->line()));
             break;
         case TokenKind::GreaterThan:
         case TokenKind::LessThan:
         case TokenKind::GreaterThanEquals:
         case TokenKind::LessThanEquals:
-            set_owned_value(eval_comparison(expr->op(), l_result, m_view_value, expr->line()));
+            set_owned_value(eval_comparison(expr->op(), l_view, r_view, expr->line()));
             break;
         case TokenKind::EqualsEquals:
         case TokenKind::NotEquals:
-            set_owned_value(eval_equality(expr->op(), l_result, m_view_value, expr->line()));
+            set_owned_value(eval_equality(expr->op(), l_view, r_view, expr->line()));
             break;
         default: {
             set_owned_value(std::make_unique<ErrorValue>(
@@ -276,6 +286,11 @@ void Interpreter::visit_literal_expr(const LiteralExpr<bool>* expr) {
 
 bool Interpreter::check_err_val() const {
     return m_view_value && m_view_value->kind() == WispValueKind::Error;
+}
+
+void Interpreter::report_runtime_error() {
+    const auto* err = static_cast<const ErrorValue*>(m_view_value);
+    m_comp_unit.diagnostics.push_back(Diagnostic{ err->line(), std::string(err->message()) });
 }
 
 }   // namespace Wisp

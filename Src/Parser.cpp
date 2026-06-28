@@ -115,43 +115,43 @@ std::unique_ptr<VarDeclStmt> Parser::parse_var_decl_stmt() {
 }
 
 std::unique_ptr<ExprNode> Parser::parse_expr() {
-    switch (current_token().value()->kind) {
-        case TokenKind::Ident:
-            return parse_ident_expr();
-        default:
-            return parse_logical();
-    }
+    return parse_assignment();
 }
 
-std::unique_ptr<ExprNode> Parser::parse_ident_expr() {
-    auto name = std::string(current_token().value()->lexeme);
-    advance();
+std::unique_ptr<ExprNode> Parser::parse_assignment() {
+    auto left = parse_logical();
+    if (!left) {
+        return nullptr;
+    }
 
-    const auto* curr_tok = current_token().value();
-    if (curr_tok->kind == TokenKind::Equals) {
+    auto curr_token = current_token();
+    if (curr_token.has_value() && curr_token.value()->kind == TokenKind::Equals) {
+        auto op_line = curr_token.value()->line;
+
+        if (left->kind() != ASTNodeKind::VarExpr) {
+            m_comp_unit.diagnostics.push_back(Diagnostic{
+                .line = op_line,
+                .message = "Invalid assignment target" });
+            return nullptr;
+        }
+
         advance();
-        auto value = parse_expr();
+        auto value = parse_assignment();   // right-associative: a = b = c
         if (!value) {
             return nullptr;
         }
-        return std::make_unique<AssignExpr>(std::move(name), std::move(value), curr_tok->line);
+        auto name = std::string(static_cast<VarExpr*>(left.get())->name());
+        return std::make_unique<AssignExpr>(std::move(name), std::move(value), op_line);
     }
 
-    if (curr_tok->kind == TokenKind::Semicolon) {
-        return std::make_unique<VarExpr>(std::move(name), curr_tok->line);
-    }
-
-    m_comp_unit.diagnostics.push_back(Diagnostic{
-        .line = curr_tok->line,
-        .message = "Expected identifier expression or assign expression" });
-    return nullptr;
+    return left;
 }
 
 
 std::unique_ptr<ExprNode> Parser::parse_logical() {
     auto left = parse_term();
     auto curr_token = current_token();
-    if (!curr_token.has_value() ) {
+    if (!curr_token.has_value()) {
         return left;
     }
 
@@ -174,7 +174,7 @@ std::unique_ptr<ExprNode> Parser::parse_logical() {
         left = std::make_unique<BinaryExpr>(op, std::move(left), std::move(right), op_line);
 
         curr_token = current_token();
-        if (!curr_token.has_value() ) {
+        if (!curr_token.has_value()) {
             break;
         }
         kind = curr_token.value()->kind;
@@ -186,7 +186,7 @@ std::unique_ptr<ExprNode> Parser::parse_logical() {
 std::unique_ptr<ExprNode> Parser::parse_term() {
     auto left = parse_factor();
     auto curr_token = current_token();
-    if (!curr_token.has_value() ) {
+    if (!curr_token.has_value()) {
         return left;
     }
 
@@ -202,7 +202,7 @@ std::unique_ptr<ExprNode> Parser::parse_term() {
         left = std::make_unique<BinaryExpr>(op, std::move(left), std::move(right), op_line);
 
         curr_token = current_token();
-        if (!curr_token.has_value() ) {
+        if (!curr_token.has_value()) {
             break;
         }
         kind = curr_token.value()->kind;
@@ -214,7 +214,7 @@ std::unique_ptr<ExprNode> Parser::parse_term() {
 std::unique_ptr<ExprNode> Parser::parse_factor() {
     auto left = parse_unary();
     auto curr_token = current_token();
-    if (!curr_token.has_value() ) {
+    if (!curr_token.has_value()) {
         return left;
     }
 
@@ -230,7 +230,7 @@ std::unique_ptr<ExprNode> Parser::parse_factor() {
         left = std::make_unique<BinaryExpr>(op, std::move(left), std::move(right), op_line);
 
         curr_token = current_token();
-        if (!curr_token.has_value() ) {
+        if (!curr_token.has_value()) {
             break;
         }
         kind = curr_token.value()->kind;
@@ -241,7 +241,7 @@ std::unique_ptr<ExprNode> Parser::parse_factor() {
 
 std::unique_ptr<ExprNode> Parser::parse_unary() {
     auto curr_token = current_token();
-    if (!curr_token.has_value() ) {
+    if (!curr_token.has_value()) {
         return nullptr;
     }
 
@@ -262,7 +262,7 @@ std::unique_ptr<ExprNode> Parser::parse_unary() {
 
 std::unique_ptr<ExprNode> Parser::parse_primary() {
     auto curr_token = current_token();
-    if (!curr_token.has_value() ) {
+    if (!curr_token.has_value()) {
         return nullptr;
     }
 
@@ -280,7 +280,7 @@ std::unique_ptr<ExprNode> Parser::parse_primary() {
 
 std::unique_ptr<ExprNode> Parser::parse_literal() {
     auto curr_token = current_token();
-    if (!curr_token.has_value() ) {
+    if (!curr_token.has_value()) {
         return nullptr;
     }
 
@@ -314,6 +314,12 @@ std::unique_ptr<ExprNode> Parser::parse_literal() {
             auto value = std::string(curr_token.value()->lexeme);
             advance();
             return std::make_unique<LiteralExpr<std::string>>(value, line);
+        }
+        case TokenKind::Ident: {
+            auto line = curr_token.value()->line;
+            auto name = std::string(curr_token.value()->lexeme);
+            advance();
+            return std::make_unique<VarExpr>(std::move(name), line);
         }
         default:
             m_comp_unit.diagnostics.push_back(Diagnostic{ .line = curr_token.value()->line, .message = "Invalid literal type" });

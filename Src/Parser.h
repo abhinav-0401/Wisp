@@ -30,7 +30,7 @@ private:
     std::unique_ptr<VarDeclStmt> parse_var_decl_stmt();
 
     std::unique_ptr<ExprNode> parse_expr();
-    std::unique_ptr<ExprNode> parse_ident_expr();
+    std::unique_ptr<ExprNode> parse_assignment();
     std::unique_ptr<ExprNode> parse_logical();
     std::unique_ptr<ExprNode> parse_term();
     std::unique_ptr<ExprNode> parse_factor();

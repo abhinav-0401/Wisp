@@ -6,6 +6,7 @@
 #define WISP_INTERPRETER_H
 
 #include "AST.h"
+#include "CompilationUnit.h"
 #include "Environment.h"
 #include "NodeVisitor.h"
 #include "WispValue.h"
@@ -16,7 +17,7 @@ namespace Wisp {
 
 class Interpreter final : public NodeVisitor {
 public:
-    Interpreter();
+    explicit Interpreter(CompilationUnit& comp_unit);
 
     void visit_literal_expr(const LiteralExpr<std::int32_t>* expr) override;
     void visit_literal_expr(const LiteralExpr<std::string>* expr) override;
@@ -34,6 +35,7 @@ public:
 
 private:
     bool check_err_val() const;
+    void report_runtime_error();
     std::unique_ptr<WispValue> eval_arithmetic(TokenKind op, const WispValue* l, const WispValue* r, std::size_t line) const;
     std::unique_ptr<WispValue> eval_comparison(TokenKind op, const WispValue* l, const WispValue* r, std::size_t line) const;
     std::unique_ptr<WispValue> eval_equality(TokenKind op, const WispValue* l, const WispValue* r, std::size_t line) const;
@@ -52,6 +54,7 @@ private:
     std::unique_ptr<WispValue> m_owned_value = nullptr;
     const WispValue* m_view_value = nullptr;
     std::shared_ptr<Environment> m_current_env = nullptr;
+    CompilationUnit& m_comp_unit;
 };
 
 }   // namespace Wisp

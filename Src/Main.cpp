@@ -25,7 +25,7 @@ static void print_lexer_tokens(const Wisp::CompilationUnit& comp_unit) {
 int main() {
     using namespace Wisp;
 
-    std::string test_str = "print 5 * (2 + 1);\n var x = 5;\n print x;";
+    std::string test_str = "print 5 * (2 + 1);\n var x = 5;\n print x;\n let y = x / 2;\n print y;\n x = \"something\"; print x;";
 
     auto test_comp_unit = CompilationUnit{
         .filename = "TestFileString",
@@ -58,8 +58,13 @@ int main() {
     test_comp_unit.program->accept(print_visitor);
     std::cout << print_visitor.output() << "\n";
 
-    auto interpreter = Interpreter{};
+    auto interpreter = Interpreter{ test_comp_unit };
     test_comp_unit.program->accept(interpreter);
+
+    if (test_comp_unit.has_errors()) {
+        print_diagnostics(test_comp_unit);
+        return EXIT_FAILURE;
+    }
 
     return EXIT_SUCCESS;
 }
