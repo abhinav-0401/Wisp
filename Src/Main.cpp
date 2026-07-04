@@ -26,10 +26,11 @@ int main() {
     using namespace Wisp;
 
     std::string test_str = "print 5 * (2 + 1);\n var x = 5;\n print x;\n let y = x / 2;\n print y;\n x = \"something\"; print x;";
+    std::string test_block = "var x = \"hello\";\n print x;\n { print \"hello from inside\";\n var y = 10;\n y = 11;\n print y;\n print x;\n }";
 
     auto test_comp_unit = CompilationUnit{
         .filename = "TestFileString",
-        .source = std::move(test_str),
+        .source = std::move(test_block),
         .tokens = std::vector<Token>(),
         .diagnostics = std::vector<Diagnostic>()
     };

@@ -52,6 +52,8 @@ std::unique_ptr<StmtNode> Parser::parse_stmt() {
         case TokenKind::Var:
         case TokenKind::Let:
             return parse_var_decl_stmt();
+        case TokenKind::LeftCurly:
+            return parse_block_stmt();
         default:
             return parse_expr_stmt();
     }
@@ -114,6 +116,44 @@ std::unique_ptr<VarDeclStmt> Parser::parse_var_decl_stmt() {
     return std::make_unique<VarDeclStmt>(std::move(name), std::move(value), is_mutable, line);
 }
 
+std::unique_ptr<BlockStmt> Parser::parse_block_stmt() {
+    auto left_curly_line = current_token().value()->line;
+
+    auto curr_kind = current_token().value()->kind;
+    if (curr_kind == TokenKind::RightCurly) {
+        return std::make_unique<BlockStmt>(left_curly_line, std::vector<std::unique_ptr<StmtNode>>{});
+    }
+
+    advance();
+    if (is_eof()) {
+        m_comp_unit.diagnostics.push_back(Diagnostic{
+            .line = left_curly_line,
+            .message = "Unterminated block" });
+        return nullptr;
+    }
+
+    std::vector<std::unique_ptr<StmtNode>> stmts;
+    while (!is_eof() && curr_kind != TokenKind::RightCurly) {
+        auto stmt = parse_stmt();
+        if (!stmt) {
+            return nullptr;
+        }
+        stmts.push_back(std::move(stmt));
+        curr_kind = current_token().value()->kind;
+    }
+
+    if (is_eof()) {
+        m_comp_unit.diagnostics.push_back(Diagnostic{
+            .line = left_curly_line,
+            .message = "Unterminated block" });
+        return nullptr;
+    }
+
+    advance();
+    return std::make_unique<BlockStmt>(left_curly_line, std::move(stmts));
+}
+
+
 std::unique_ptr<ExprNode> Parser::parse_expr() {
     return parse_assignment();
 }
@@ -146,7 +186,6 @@ std::unique_ptr<ExprNode> Parser::parse_assignment() {
 
     return left;
 }
-
 
 std::unique_ptr<ExprNode> Parser::parse_logical() {
     auto left = parse_term();

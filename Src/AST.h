@@ -29,6 +29,7 @@ enum class ASTNodeKind {
     ExprStmt,
     PrintStmt,
     VarDeclStmt,
+    BlockStmt,
 };
 
 class ASTNode {
@@ -216,6 +217,21 @@ private:
     std::string m_name;
     std::unique_ptr<ExprNode> m_init;
     bool m_is_mutable;
+};
+
+class BlockStmt : public StmtNode {
+public:
+    BlockStmt(std::size_t line, std::vector<std::unique_ptr<StmtNode>> stmts)
+        : StmtNode(line)
+        , m_stmts(std::move(stmts)) {}
+
+    void add_stmt(std::unique_ptr<StmtNode> stmt) { m_stmts.push_back(std::move(stmt)); }
+    const std::vector<std::unique_ptr<StmtNode>>& stmts() const { return m_stmts; }
+    ASTNodeKind kind() const override { return ASTNodeKind::BlockStmt; }
+    void accept(NodeVisitor& visitor) const override { visitor.visit_block_stmt(this); }
+
+private:
+    std::vector<std::unique_ptr<StmtNode>> m_stmts;
 };
 
 }   // namespace Wisp

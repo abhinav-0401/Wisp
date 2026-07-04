@@ -54,6 +54,15 @@ void Interpreter::visit_var_decl_stmt(const VarDeclStmt* stmt) {
     }
 }
 
+void Interpreter::visit_block_stmt(const BlockStmt* stmt) {
+    m_current_env = std::make_unique<Environment>(m_current_env);
+    for (const auto& s : stmt->stmts()) {
+        s->accept(*this);
+        if (check_err_val()) {
+            return;
+        }
+    }
+}
 
 /*   HERE BE EXPRs   */
 

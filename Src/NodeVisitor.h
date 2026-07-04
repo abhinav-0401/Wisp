@@ -20,6 +20,7 @@ class AssignExpr;
 class ExprStmt;
 class PrintStmt;
 class VarDeclStmt;
+class BlockStmt;
 
 class NodeVisitor {
 public:
@@ -38,6 +39,7 @@ public:
     virtual void visit_expr_stmt(const ExprStmt* stmt) = 0;
     virtual void visit_print_stmt(const PrintStmt* stmt) = 0;
     virtual void visit_var_decl_stmt(const VarDeclStmt* stmt) = 0;
+    virtual void visit_block_stmt(const BlockStmt* stmt) = 0;
 };
 
 }   // namespace Wisp

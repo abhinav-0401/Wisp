@@ -26,6 +26,15 @@ void ASTPrinter::visit_var_decl_stmt(const VarDeclStmt* stmt) {
     m_output += " }\n";
 }
 
+void ASTPrinter::visit_block_stmt(const BlockStmt* stmt) {
+    m_output += "BlockStmt { ";
+    for (const auto& s : stmt->stmts()) {
+        s->accept(*this);
+    }
+    m_output += " }\n";
+}
+
+
 void ASTPrinter::visit_unary_expr(const UnaryExpr* expr) {
     m_output += " UnaryExpr{ ";
     expr->expr().accept(*this);
@@ -49,7 +58,7 @@ void ASTPrinter::visit_var_expr(const VarExpr* expr) {
 }
 
 void ASTPrinter::visit_assign_expr(const AssignExpr* expr) {
-    m_output += " AssignExpr{ ";
+    m_output += "AssignExpr{ ";
     m_output += expr->name() + " = ";
     expr->value().accept(*this);
     m_output += " }";
