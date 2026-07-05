@@ -34,6 +34,17 @@ void ASTPrinter::visit_block_stmt(const BlockStmt* stmt) {
     m_output += " }\n";
 }
 
+void ASTPrinter::visit_if_stmt(const IfStmt* stmt) {
+    m_output += "IfStmt{ ";
+    stmt->cond().accept(*this);
+    m_output += " , ";
+    stmt->then_branch().accept(*this);
+    m_output += " , ";
+    if (stmt->else_branch()) {
+        stmt->else_branch()->accept(*this);
+    }
+}
+
 
 void ASTPrinter::visit_unary_expr(const UnaryExpr* expr) {
     m_output += " UnaryExpr{ ";

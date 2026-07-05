@@ -49,7 +49,7 @@ enum class TokenKind {
     Fn,
     If,
     Else,
-    While,
+    For,
     Return,
     Struct,
     Class,
@@ -100,7 +100,7 @@ constexpr std::string_view token_kind_to_string(const TokenKind kind) {
         case TokenKind::Fn: return "Fn";
         case TokenKind::If: return "If";
         case TokenKind::Else: return "Else";
-        case TokenKind::While: return "While";
+        case TokenKind::For: return "For";
         case TokenKind::Return: return "Return";
         case TokenKind::Struct: return "Struct";
         case TokenKind::Class: return "Class";

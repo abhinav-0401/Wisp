@@ -20,6 +20,7 @@ enum class ASTNodeKind {
     BinaryExpr,
     VarExpr,
     AssignExpr,
+    CallExpr,
 
     IntLiteral,
     FloatLiteral,
@@ -30,6 +31,9 @@ enum class ASTNodeKind {
     PrintStmt,
     VarDeclStmt,
     BlockStmt,
+    IfStmt,
+    ForStmt,
+    FnDeclStmt,
 };
 
 class ASTNode {
@@ -145,6 +149,10 @@ private:
     std::unique_ptr<ExprNode> m_value;
 };
 
+class CallExpr : public ExprNode {
+
+};
+
 template <AllowedLiteral T>
 class LiteralExpr : public ExprNode {
 public:
@@ -232,6 +240,38 @@ public:
 
 private:
     std::vector<std::unique_ptr<StmtNode>> m_stmts;
+};
+
+class IfStmt : public StmtNode {
+public:
+    IfStmt(std::size_t line,
+        std::unique_ptr<ExprNode> cond,
+        std::unique_ptr<BlockStmt> then_block,
+        std::unique_ptr<StmtNode> else_block)
+            : StmtNode(line)
+            , m_cond(std::move(cond))
+            , m_then_block(std::move(then_block))
+            , m_else_block(std::move(else_block)) {}
+
+    const BlockStmt& then_branch() const { return *m_then_block; }
+    const StmtNode* else_branch() const { return m_else_block.get(); }
+    const ExprNode& cond() const { return *m_cond; }
+    ASTNodeKind kind() const override { return ASTNodeKind::IfStmt; }
+    void accept(NodeVisitor& visitor) const override { visitor.visit_if_stmt(this); }
+
+private:
+    std::unique_ptr<ExprNode> m_cond;
+    std::unique_ptr<BlockStmt> m_then_block;
+    // since an else stmt may be followed by either an if stmt again or simply a block stmt
+    std::unique_ptr<StmtNode> m_else_block;
+};
+
+class ForStmt : public StmtNode {
+
+};
+
+class FnDeclStmt : public StmtNode {
+
 };
 
 }   // namespace Wisp

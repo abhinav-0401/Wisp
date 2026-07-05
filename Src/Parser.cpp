@@ -54,6 +54,8 @@ std::unique_ptr<StmtNode> Parser::parse_stmt() {
             return parse_var_decl_stmt();
         case TokenKind::LeftCurly:
             return parse_block_stmt();
+        case TokenKind::If:
+            return parse_if_stmt();
         default:
             return parse_expr_stmt();
     }
@@ -72,6 +74,54 @@ std::unique_ptr<PrintStmt> Parser::parse_print_stmt() {
         return nullptr;
     }
     return std::make_unique<PrintStmt>(std::move(expr), line);
+}
+
+std::unique_ptr<IfStmt> Parser::parse_if_stmt() {
+    auto line = current_token().value()->line;
+    advance();
+
+    auto cond = parse_expr();
+    if (!cond) {
+        m_comp_unit.diagnostics.push_back(Diagnostic{
+            .line = current_token().value()->line,
+            .message = "Expected expression" });
+        return nullptr;
+    }
+
+    auto then_branch = parse_block_stmt();
+    if (!then_branch) {
+        m_comp_unit.diagnostics.push_back(Diagnostic{
+            .line = current_token().value()->line,
+            .message = "Expected block after if condition" });
+        return nullptr;
+    }
+
+    if (current_token().value()->kind == TokenKind::Else) {
+        advance();
+        if (current_token().value()->kind == TokenKind::If) {
+            auto else_if_branch = parse_if_stmt();
+            if (!else_if_branch) {
+                m_comp_unit.diagnostics.push_back(Diagnostic{
+                    .line = current_token().value()->line,
+                    .message = "Expected block after else if" });
+                return nullptr;
+            }
+            return std::make_unique<IfStmt>(
+                line,
+                std::move(cond),
+                std::move(then_branch),
+                std::move(else_if_branch));
+        }
+        auto else_branch = parse_block_stmt();
+        if (!else_branch) {
+            m_comp_unit.diagnostics.push_back(Diagnostic{
+                .line = current_token().value()->line,
+                .message = "Expected block after else" });
+            return nullptr;
+        }
+        return std::make_unique<IfStmt>(line, std::move(cond), std::move(then_branch), std::move(else_branch));
+    }
+    return std::make_unique<IfStmt>(line, std::move(cond), std::move(then_branch), nullptr);
 }
 
 std::unique_ptr<ExprStmt> Parser::parse_expr_stmt() {
@@ -353,6 +403,13 @@ std::unique_ptr<ExprNode> Parser::parse_literal() {
             auto value = std::string(curr_token.value()->lexeme);
             advance();
             return std::make_unique<LiteralExpr<std::string>>(value, line);
+        }
+        case TokenKind::True:
+        case TokenKind::False: {
+            auto line = curr_token.value()->line;
+            auto value = (kind == TokenKind::True);
+            advance();
+            return std::make_unique<LiteralExpr<bool>>(value, line);
         }
         case TokenKind::Ident: {
             auto line = curr_token.value()->line;

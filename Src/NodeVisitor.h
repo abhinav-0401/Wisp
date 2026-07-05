@@ -5,6 +5,7 @@
 #ifndef WISP_NODEVISITOR_H
 #define WISP_NODEVISITOR_H
 
+#include "AST.h"
 #include "WispConcepts.h"
 
 namespace Wisp {
@@ -21,6 +22,7 @@ class ExprStmt;
 class PrintStmt;
 class VarDeclStmt;
 class BlockStmt;
+class IfStmt;
 
 class NodeVisitor {
 public:
@@ -40,6 +42,7 @@ public:
     virtual void visit_print_stmt(const PrintStmt* stmt) = 0;
     virtual void visit_var_decl_stmt(const VarDeclStmt* stmt) = 0;
     virtual void visit_block_stmt(const BlockStmt* stmt) = 0;
+    virtual void visit_if_stmt(const IfStmt* stmt) = 0;
 };
 
 }   // namespace Wisp

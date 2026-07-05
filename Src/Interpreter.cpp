@@ -55,14 +55,36 @@ void Interpreter::visit_var_decl_stmt(const VarDeclStmt* stmt) {
 }
 
 void Interpreter::visit_block_stmt(const BlockStmt* stmt) {
-    m_current_env = std::make_unique<Environment>(m_current_env);
+    auto parent_env = m_current_env;
+    m_current_env = std::make_unique<Environment>(parent_env);
     for (const auto& s : stmt->stmts()) {
         s->accept(*this);
         if (check_err_val()) {
             return;
         }
     }
+    m_current_env = parent_env;
 }
+
+void Interpreter::visit_if_stmt(const IfStmt* stmt) {
+    stmt->cond().accept(*this);
+    if (check_err_val()) {
+        return;
+    }
+
+    if (m_view_value->kind() != WispValueKind::Bool) {
+        set_owned_value(std::make_unique<ErrorValue>(
+            "Condition of 'if' must evaluate to a boolean.", stmt->line()));
+        report_runtime_error();
+        return;
+    }
+
+    auto cond_val = static_cast<const BoolValue*>(m_view_value)->value();
+    if (cond_val) {
+        stmt->then_branch().accept(*this);
+    } else if (stmt->else_branch()) {
+        stmt->else_branch()->accept(*this);
+    }}
 
 /*   HERE BE EXPRs   */
 

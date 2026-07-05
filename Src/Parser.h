@@ -29,6 +29,7 @@ private:
     std::unique_ptr<ExprStmt> parse_expr_stmt();
     std::unique_ptr<VarDeclStmt> parse_var_decl_stmt();
     std::unique_ptr<BlockStmt> parse_block_stmt();
+    std::unique_ptr<IfStmt> parse_if_stmt();
 
     std::unique_ptr<ExprNode> parse_expr();
     std::unique_ptr<ExprNode> parse_assignment();

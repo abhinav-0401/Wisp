@@ -117,7 +117,7 @@ const std::unordered_map<std::string_view, TokenKind> s_keywords = {
     {"fn", TokenKind::Fn},
     {"if", TokenKind::If},
     {"else", TokenKind::Else},
-    {"while", TokenKind::While},
+    {"for", TokenKind::For},
     {"return", TokenKind::Return},
     {"struct", TokenKind::Struct},
     {"class", TokenKind::Class},
@@ -199,6 +199,16 @@ void Lexer::skip_whitespace() {
             case '\n':
                 m_line++;
                 advance();
+                break;
+            case '/':
+                if (peek() != '/') {
+                    return;     // a division operator, not a comment
+                }
+                // line comment: consume until end of line, leaving the
+                // '\n' for the next iteration so m_line is counted correctly
+                while (current_char() != '\n' && !is_eof()) {
+                    advance();
+                }
                 break;
             default:
                 return;

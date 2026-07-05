@@ -33,6 +33,7 @@ public:
     void visit_print_stmt(const PrintStmt* stmt) override;
     void visit_var_decl_stmt(const VarDeclStmt* stmt) override;
     void visit_block_stmt(const BlockStmt* stmt) override;
+    void visit_if_stmt(const IfStmt* stmt) override;
 
 private:
     bool check_err_val() const;

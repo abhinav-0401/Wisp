@@ -28,9 +28,41 @@ int main() {
     std::string test_str = "print 5 * (2 + 1);\n var x = 5;\n print x;\n let y = x / 2;\n print y;\n x = \"something\"; print x;";
     std::string test_block = "var x = \"hello\";\n print x;\n { print \"hello from inside\";\n var y = 10;\n y = 11;\n print y;\n print x;\n }";
 
+    std::string test_if = R"(
+var x = 10;
+var label = "none";
+
+if x > 5 {
+    print "x is big";
+    var inner = 99;      // must NOT leak out of this block
+    print inner;
+} else {
+    print "x is small";
+}
+
+if x < 5 {
+    label = "small";
+} else if x == 10 {
+    label = "exactly ten";   // outer var mutated from inner scope
+} else {
+    label = "other";
+}
+print label;                 // expect: exactly ten
+
+let ready = false;
+if ready {
+    print "ready branch";
+} else {
+    print "not ready";       // expect: not ready
+}
+
+var inner = 1;               // legal ONLY if 'inner' didn't leak above
+print inner;                 // expect: 1
+)";
+
     auto test_comp_unit = CompilationUnit{
         .filename = "TestFileString",
-        .source = std::move(test_block),
+        .source = std::move(test_if),
         .tokens = std::vector<Token>(),
         .diagnostics = std::vector<Diagnostic>()
     };
@@ -43,7 +75,7 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    print_lexer_tokens(test_comp_unit);
+    // print_lexer_tokens(test_comp_unit);
 
     auto parser = Parser{ test_comp_unit };
     parser.parse_comp_unit();
@@ -57,7 +89,7 @@ int main() {
 
     auto print_visitor = ASTPrinter{};
     test_comp_unit.program->accept(print_visitor);
-    std::cout << print_visitor.output() << "\n";
+    // std::cout << print_visitor.output() << "\n";
 
     auto interpreter = Interpreter{ test_comp_unit };
     test_comp_unit.program->accept(interpreter);
